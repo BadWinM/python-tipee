@@ -13,6 +13,7 @@ import argparse
 
 import requests
 
+
 class CustomFormatter(
     argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaultsHelpFormatter
 ):
@@ -82,12 +83,12 @@ class Tipee:
     def get_worktime(self, day=None):
         total_working_time = datetime.timedelta()
 
-        for timecheck in self.get_timechecks(day):
-            time_in = parse_time(timecheck["time_in"])
-            time_out = parse_time(timecheck["time_out"] , datetime.datetime.now())
-            if timecheck["time_out"] == None:
-                time_out = parse_time(timecheck["proposal_out"], datetime.datetime.now())
-            delta = time_out - time_in
+        for t_check in self.get_timechecks(day):
+            t_in = parse_time(t_check["time_in"])
+            t_out = parse_time(t_check["time_out"], datetime.datetime.now())
+            if t_check["time_out"] is None:
+                t_out = parse_time(t_check["proposal_out"], datetime.datetime.now())
+            delta = t_out - t_in
             total_working_time += delta
 
         return total_working_time
@@ -106,6 +107,7 @@ class Tipee:
         }
         r = self.session.post(url, json=payload)
         r.raise_for_status()
+
 
 class Route:
     def get_title():
@@ -126,48 +128,49 @@ class Route:
             title = f"{title_length.center(table_size)}\n{title_only.center(table_size + 9)}\n{title_length.center(table_size)}"
 
         return title, title_only
-    def get_line():
-        if jsontext['connections'][0]['sections'][nb_section]['walk'] != None:
-            category = "N/A"
-            number = ""
-            to_route = ""
-        elif jsontext['connections'][0]['sections'][nb_section]['journey']['category'] in transport_dict:
-            category = ""
-            number = jsontext['connections'][0]['sections'][nb_section]['journey']['number'] + " -> "
-            to_route = jsontext['connections'][0]['sections'][nb_section]['journey']['to']
-        else:
-            category = jsontext['connections'][0]['sections'][nb_section]['journey']['category']
-            number = jsontext['connections'][0]['sections'][nb_section]['journey']['number'] + " -> "
-            to_route = jsontext['connections'][0]['sections'][nb_section]['journey']['to']
 
-        return category, number, to_route
+    def get_line():
+        if jsontext['connections'][0]['sections'][nb_section]['walk'] is not None:
+            line_category = "N/A"
+            line_number = ""
+            line_to_route = ""
+        elif jsontext['connections'][0]['sections'][nb_section]['journey']['category'] in transport_dict:
+            line_category = ""
+            line_number = jsontext['connections'][0]['sections'][nb_section]['journey']['number'] + " -> "
+            line_to_route = jsontext['connections'][0]['sections'][nb_section]['journey']['to']
+        else:
+            line_category = jsontext['connections'][0]['sections'][nb_section]['journey']['category']
+            line_number = jsontext['connections'][0]['sections'][nb_section]['journey']['number'] + " -> "
+            line_to_route = jsontext['connections'][0]['sections'][nb_section]['journey']['to']
+
+        return line_category, line_number, line_to_route
 
     def get_transport():
-
-        if jsontext['connections'][0]['sections'][nb_section]['walk'] != None:
-            transport = "|  ➡️    🚶  |"
+        if jsontext['connections'][0]['sections'][nb_section]['walk'] is not None:
+            route_transport = "|  ➡️    🚶  |"
         elif jsontext['connections'][0]['sections'][nb_section]['journey']['category'] in train:
-            transport = "|  ➡️    🚆  |"
+            route_transport = "|  ➡️    🚆  |"
         elif jsontext['connections'][0]['sections'][nb_section]['journey']['category'] in transport_dict:
-            transport = transport_dict[jsontext['connections'][0]['sections'][nb_section]['journey']['category']]
+            route_transport = transport_dict[jsontext['connections'][0]['sections'][nb_section]['journey']['category']]
         else:
-            transport = "N/A"
+            route_transport = "N/A"
 
-        return transport
+        return route_transport
 
     def get_platform():
-        if jsontext['connections'][0]['sections'][nb_section]['walk'] != None or jsontext['connections'][0]['sections'][nb_section]['journey']['passList'][0]['platform'] == None:
-            platform = "No platform"
+        if jsontext['connections'][0]['sections'][nb_section]['walk'] is not None or \
+                jsontext['connections'][0]['sections'][nb_section]['journey']['passList'][0]['platform'] is None:
+            route_platform = "No platform"
         else:
-            platform = "Plaform N°" + jsontext['connections'][0]['sections'][nb_section]['journey']['passList'][0]['platform']
+            route_platform = "Plaform N°" + jsontext['connections'][0]['sections'][nb_section]['journey']['passList'][0]['platform']
 
-        return platform
+        return route_platform
 
 
 def get_weather():
-    url_weater = f"http://wttr.in/{t._get_me()}?0"
-    response = requests.get(url_weater)        # To execute get request
-    response_text = '\n' + response.text     # To print formatted JSON response
+    url_weather = f"http://wttr.in/{t._get_me()}?0"
+    response = requests.get(url_weather)  # To execute get request
+    response_text = '\n' + response.text  # To print formatted JSON response
     return response_text
 
 
@@ -178,7 +181,8 @@ def parse_args(args=sys.argv[1:]):
     )
 
     parser.add_argument('-p', '--punch', action='store_true', help="punch your time on Tipee")
-    parser.add_argument('-d', '--no-departure', dest="no_departure", action='store_true', help="don't show you what time you can leave")
+    parser.add_argument('-d', '--no-departure', dest="no_departure", action='store_true',
+                        help="don't show you what time you can leave")
     parser.add_argument('-w', '--weather', action='store_true', help="show the current weather")
     parser.add_argument('-r', '--route', action='store_true', help="show your route with pulic transport")
 
@@ -216,7 +220,7 @@ if __name__ == "__main__":
     t = Tipee(os.getenv("TIPEE_URL", default="https://infomaniak.tipee.net/"))
     username = os.getenv("TIPEE_USERNAME")
     password = os.getenv("TIPEE_PASSWORD")
-    if username == None or password == None or username == '' or password == '':
+    if username is None or password is None or username == '' or password == '':
         sys.exit("Please set TIPEE_USERNAME and TIPEE_PASSWORD environment variables")
     t.login(username, password)
 
@@ -254,10 +258,12 @@ if __name__ == "__main__":
             nb_time_in += 1
 
             # we take the time_out as an int to calculate it
-            if timecheck["time_out"] != None:
-                first_time_out = 10000*datetime.datetime.strptime(timecheck["time_out"], "%Y-%m-%d %H:%M:%S").hour + 100*datetime.datetime.strptime(timecheck["time_out"], "%Y-%m-%d %H:%M:%S").minute
+            if timecheck["time_out"] is not None:
+                first_time_out = 10000 * datetime.datetime.strptime(timecheck["time_out"], "%Y-%m-%d %H:%M:%S").hour \
+                                 + 100 * datetime.datetime.strptime(timecheck["time_out"], "%Y-%m-%d %H:%M:%S").minute
         # we take the time_in as an int to calculate it
-        second_time_in = 10000*datetime.datetime.strptime(timecheck["time_in"], "%Y-%m-%d %H:%M:%S").hour + 100*datetime.datetime.strptime(timecheck["time_in"], "%Y-%m-%d %H:%M:%S").minute
+        second_time_in = 10000 * datetime.datetime.strptime(timecheck["time_in"], "%Y-%m-%d %H:%M:%S").hour \
+                         + 100 * datetime.datetime.strptime(timecheck["time_in"], "%Y-%m-%d %H:%M:%S").minute
         # we remove 30mins if we did not make the break
         if nb_time_in == 1:
             missing += 30
@@ -287,17 +293,20 @@ if __name__ == "__main__":
     # Routes
     if args.route:
 
-        # try to import the tabulate module. We import this module at the middle of the script beacause it is not mandatory for the proper functioning of the script without journey
+        # try to import the tabulate module. We import this module at the middle of the script beacause it is not
+        # mandatory for the proper functioning of the script without journey
         try:
             from tabulate import tabulate
         except ImportError or ModuleNotFoundError:
             # The tabulate module does not exist, display proper error message and exit
-            print('\n⚠️  \033[93mYour route in public transport can only run with tabulate module.\033[0m \n   --> So please install TABULATE with "\033[1mpip install tabulate\033[0m".')
+            print(
+                '\n⚠️  \033[93mYour route in public transport can only run with tabulate module.\033[0m \n   --> So '
+                'please install TABULATE with "\033[1mpip install tabulate\033[0m".')
             sys.exit(1)
 
         # We set the environment variables
         from_name = os.getenv("TIPEE_FROM")
-        to_name = t._get_me()                 # with a environement variable : os.getenv("TIPEE_TO")
+        to_name = t._get_me()  # with a environement variable : os.getenv("TIPEE_TO")
 
         if from_name is None or to_name is None:
             print("\nℹ️  Please set TIPEE_FROM environment variable to get your journey by public transport\n")
@@ -311,31 +320,40 @@ if __name__ == "__main__":
             to_name = to_name.replace(" ", "+")
 
             date_route_now = str(datetime.datetime.now() + datetime.timedelta(minutes=5))
-            date_route = "{:%Y-%m-%dT%H}".format(datetime.datetime.strptime(date_route_now, "%Y-%m-%d %H:%M:%S.%f")) + "%3A" + "{:%M}".format(datetime.datetime.strptime(date_route_now, "%Y-%m-%d %H:%M:%S.%f"))
+            date_route = "{:%Y-%m-%dT%H}".format(
+                datetime.datetime.strptime(date_route_now, "%Y-%m-%d %H:%M:%S.%f")) + "%3A" + "{:%M}".format(
+                datetime.datetime.strptime(date_route_now, "%Y-%m-%d %H:%M:%S.%f"))
 
             # API transport
             urlCFF = f"http://transport.opendata.ch/v1/connections?from={from_name}&to={to_name}&datetime={date_route}"
 
-            responseCFF = requests.get(urlCFF)        # To execute get request
+            responseCFF = requests.get(urlCFF)  # To execute get request
             jsontext = responseCFF.json()
 
             # Try to get information from the Transport json and if there is an error, it prints an error message
             try:
                 error_test = jsontext['connections'][0]['sections']
             except IndexError:
-                print('⚠️  \033[93mOuuups it is not possible to make an itinerary with the departure you have entered or the arrival associated with your Tipee account.\033[0m \n   --> Please try to change the "\033[1mTIPEE_FROM\033[0m" environement variable and try again')
+                print(
+                    '⚠️  \033[93mOuuups it is not possible to make an itinerary with the departure you have entered '
+                    'or the arrival associated with your Tipee account.\033[0m \n   --> Please try to change the '
+                    '"\033[1mTIPEE_FROM\033[0m" environement variable and try again')
                 sys.exit(1)
 
             nb_section = -1
             nb_steps_route = 1
 
             # Empty table
-            route = {"Transport":[], "Line":[], "Platform":[], "Departure":[], "HD":[], "Arrival":[], "HA":[]}
+            route = {"Transport": [], "Line": [], "Platform": [], "Departure": [], "HD": [], "Arrival": [], "HA": []}
 
             # Every train
-            train = ["AG", "ARC", "ARZ", "AT", "ATR", "ATZ", "AVE", "BEX", "CAT", "CNL", "D", "E", "EC", "EM", "EN", "ES", "EST", "EXT", "GEX", "IC", "ICE", "ICN", "IN", "IR", "IRE", "IT", "JAT", "MAT", "MP", "NJ", "NZ", "P", "PE", "R", "RB", "RE", "RJ", "RJX", "S", "SN", "STB", "TAL", "TER", "TE2", "TGV", "THA", "TLK", "UEX", "VAE", "WB", "X", "X2", "ZUG"]
+            train = ["AG", "ARC", "ARZ", "AT", "ATR", "ATZ", "AVE", "BEX", "CAT", "CNL", "D", "E", "EC", "EM", "EN",
+                     "ES", "EST", "EXT", "GEX", "IC", "ICE", "ICN", "IN", "IR", "IRE", "IT", "JAT", "MAT", "MP", "NJ",
+                     "NZ", "P", "PE", "R", "RB", "RE", "RJ", "RJX", "S", "SN", "STB", "TAL", "TER", "TE2", "TGV", "THA",
+                     "TLK", "UEX", "VAE", "WB", "X", "X2", "ZUG"]
 
-            transport_dict = {"T":"|  ➡️    🚊  |", "M":"|  ➡️    🚇  |", "B": "|  ➡️    🚌  |", "BAT":"|  ➡️    🚢  |"}
+            transport_dict = {"T": "|  ➡️    🚊  |", "M": "|  ➡️    🚇  |", "B": "|  ➡️    🚌  |",
+                              "BAT": "|  ➡️    🚢  |"}
 
             for jsontext['journey'] in jsontext['connections'][0]['sections']:
                 # Set the variables
@@ -346,14 +364,18 @@ if __name__ == "__main__":
                 departure = jsontext['connections'][0]['sections'][nb_section]['departure']['station']['name']
                 arrival = jsontext['connections'][0]['sections'][nb_section]['arrival']['station']['name']
 
-                #Houre
-                departure_time = '{:%Hh%Mm}'.format(datetime.datetime.strptime(jsontext['connections'][0]['sections'][nb_section]['departure']['departure'], '%Y-%m-%dT%H:%M:%S+%f'))
-                arrival_time = '{:%Hh%Mm}'.format(datetime.datetime.strptime(jsontext['connections'][0]['sections'][nb_section]['arrival']['arrival'], '%Y-%m-%dT%H:%M:%S+%f'))
+                # Houre
+                departure_time = '{:%Hh%Mm}'.format(datetime.datetime.strptime(
+                    jsontext['connections'][0]['sections'][nb_section]['departure']['departure'],
+                    '%Y-%m-%dT%H:%M:%S+%f'))
+                arrival_time = '{:%Hh%Mm}'.format(
+                    datetime.datetime.strptime(jsontext['connections'][0]['sections'][nb_section]['arrival']['arrival'],
+                                               '%Y-%m-%dT%H:%M:%S+%f'))
 
                 # Transport
                 transport = Route.get_transport()
 
-                #Line
+                # Line
                 category, number, to_route = Route.get_line()
 
                 # Plateform
@@ -369,7 +391,7 @@ if __name__ == "__main__":
                 route["HA"].append(arrival_time)
 
             # we print the route table
-            tableau = tabulate(route, headers='keys', tablefmt='fancy_grid', showindex=range(1,nb_steps_route))
+            tableau = tabulate(route, headers='keys', tablefmt='fancy_grid', showindex=range(1, nb_steps_route))
 
             # Title of the route
             title, title_only = Route.get_title()
