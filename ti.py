@@ -49,7 +49,8 @@ class Tipee:
         self.id = r.json()["id"]
         address_user = r.json()["address"]
         city_user = r.json()["city"]
-        return address_user, city_user
+        zip_user = r.json()["zip"]
+        return zip_user + ' ' + city_user + ", " + address_user
 
     def get_timechecks(self, day=None):
         if not day:
@@ -164,8 +165,7 @@ class Route:
 
 
 def get_weather():
-    address_user, city_name = t._get_me()
-    url_weater = f"http://wttr.in/{city_name}?0"
+    url_weater = f"http://wttr.in/{t._get_me()}?0"
     response = requests.get(url_weater)        # To execute get request
     response_text = '\n' + response.text     # To print formatted JSON response
     return response_text
@@ -226,7 +226,7 @@ if __name__ == "__main__":
         t.punch()
         print("The clock has been punched ! 🤜⏰")
 
-    print(f'📅 TODAY {today.strftime("%Y-%m-%d")}\n-------------------\ntimes: ', end="")
+    print(f'📅 TODAY {today.strftime("%Y-%m-%d")}\n-------------------\nTimes: ', end="")
     for timecheck in t.get_timechecks(today):
         for field in ["time_in", "time_out", "proposal_out"]:
             dt = parse_time(timecheck[field], None)
@@ -240,9 +240,9 @@ if __name__ == "__main__":
     missing = 8 * 60 - worktime
     if missing < 0:
         missing = abs(missing)
-        print(f"\ntotal worktime today so far: \033[1m{worktime // 60:.0f}h{worktime % 60:02.0f}m\033[0m ({missing // 60:.0f}h{missing % 60:02.0f}m over ⌛)")
+        print(f"\nTotal worktime today so far: \033[1m{worktime // 60:.0f}h{worktime % 60:02.0f}m\033[0m ({missing // 60:.0f}h{missing % 60:02.0f}m over ⌛)")
     else:
-        print(f"\ntotal worktime today so far: \033[1m{worktime // 60:.0f}h{worktime % 60:02.0f}m\033[0m ({missing // 60:.0f}h{missing % 60:02.0f}m left ⏳)")
+        print(f"\nTotal worktime today so far: \033[1m{worktime // 60:.0f}h{worktime % 60:02.0f}m\033[0m ({missing // 60:.0f}h{missing % 60:02.0f}m left ⏳)")
 
     if not args.no_departure:
         # We take the second time_in and the first time_out
@@ -297,8 +297,7 @@ if __name__ == "__main__":
 
         # We set the environment variables
         from_name = os.getenv("TIPEE_FROM")
-        to_name, city_user = t._get_me()                 # with a environement variable : os.getenv("TIPEE_TO")
-
+        to_name = t._get_me()                 # with a environement variable : os.getenv("TIPEE_TO")
 
         if from_name is None or to_name is None:
             print("\nℹ️  Please set TIPEE_FROM environment variable to get your journey by public transport\n")
