@@ -259,6 +259,8 @@ if __name__ == "__main__":
     birthdays = [bd["first_name"] + " " + bd["last_name"] for bd in t.get_birthdays()]
     if len(birthdays) > 0:
         print(f'\n🎂 birthdays: {",".join(birthdays)}')
+    else:
+        print(f'\n😭 no birthday to celebrate...')
 
     # Weather
     if args.weather:
