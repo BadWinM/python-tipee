@@ -162,12 +162,14 @@ class Route:
 
         return platform
 
+
 def get_weather():
     address_user, city_name = t._get_me()
     url_weater = f"http://wttr.in/{city_name}?0"
     response = requests.get(url_weater)        # To execute get request
     response_text = '\n' + response.text     # To print formatted JSON response
     return response_text
+
 
 def parse_args(args=sys.argv[1:]):
     """Parse arguments."""
@@ -182,6 +184,30 @@ def parse_args(args=sys.argv[1:]):
 
     args = parser.parse_args()
     return args
+
+
+def print_birthdays(tipee):
+    birthdays = [bd["first_name"] + " " + bd["last_name"] for bd in tipee.get_birthdays()]
+    if len(birthdays) > 0:
+        print(f'\n🎂 Birthdays: {",".join(birthdays)}')
+    else:
+        print(f'\n😭 No birthday to celebrate...\n')
+
+
+def print_balances(tipee):
+    balances = tipee.get_balances()
+    total = float((balances['hours']['total']))
+    hours = int(total)
+    minutes = total % 1
+    if total < 0:
+        if total > -1:
+            print(f"\nBalance of hours before today: -{hours}h{(1 - minutes) * 60:02.0f}m ({total})")
+        else:
+            print(f"\nBalance of hours before today: {hours}h{(1 - minutes) * 60:02.0f}m ({total})")
+    else:
+        print(f"\nBalance of hours before today: {hours}h{minutes * 60:02.0f}m ({total})")
+
+    print(f"Balance of holidays before today: {balances['holidays']['remaining']}j")
 
 
 if __name__ == "__main__":
@@ -251,16 +277,8 @@ if __name__ == "__main__":
         else:
             print(f"End of the day at: \033[1mNOW GO GO GO\033[0m 🏃💨")
 
-
-    balances = t.get_balances()
-    print(f"\nbalance of hours before today: {int(balances['hours']['total'])}h{balances['hours']['total'] % 1 * 60:02.0f}m")
-    print(f"balance of holidays before today: {balances['holidays']['remaining']}j")
-
-    birthdays = [bd["first_name"] + " " + bd["last_name"] for bd in t.get_birthdays()]
-    if len(birthdays) > 0:
-        print(f'\n🎂 birthdays: {",".join(birthdays)}')
-    else:
-        print(f'\n😭 no birthday to celebrate...')
+    print_balances(t)
+    print_birthdays(t)
 
     # Weather
     if args.weather:
