@@ -85,6 +85,8 @@ class Tipee:
 
         for t_check in self.get_timechecks(day):
             t_in = parse_time(t_check["time_in"])
+            if t_in is None:
+                t_in = parse_time(t_check["proposal_in"])
             t_out = parse_time(t_check["time_out"], datetime.datetime.now())
             if t_check["time_out"] is None:
                 t_out = parse_time(t_check["proposal_out"], datetime.datetime.now())
@@ -167,6 +169,28 @@ class Route:
         return route_platform
 
 
+def print_time_checks(tipee):
+    now = datetime.datetime.now()
+    print(f'📅 TODAY {now.strftime("%Y-%m-%d")}\n-------------------\nTimes: ', end="")
+    for check in tipee.get_timechecks(now):
+        t_in, t_out = get_safe_in_out(check)
+
+        print(f'\033[92m{parse_time(t_in).strftime("%H:%M")}\033[0m ', end="")
+        if t_out is not None:
+            print(f'\033[93m{parse_time(t_out).strftime("%H:%M")}\033[0m ', end="")
+
+
+def get_safe_in_out(timecheck_line):
+    safe_in = timecheck_line["time_in"]
+    if safe_in is None:
+        safe_in = timecheck_line["proposal_in"]
+    safe_out = timecheck_line["time_out"]
+    if safe_out is None:
+        safe_out = timecheck_line["proposal_out"]
+
+    return safe_in, safe_out
+
+
 def get_weather():
     url_weather = f"http://wttr.in/{t._get_me()}?0"
     response = requests.get(url_weather)  # To execute get request
@@ -230,16 +254,9 @@ if __name__ == "__main__":
         t.punch()
         print("The clock has been punched ! 🤜⏰")
 
-    print(f'📅 TODAY {today.strftime("%Y-%m-%d")}\n-------------------\nTimes: ', end="")
-    for timecheck in t.get_timechecks(today):
-        for field in ["time_in", "time_out", "proposal_out"]:
-            dt = parse_time(timecheck[field], None)
-            if dt == None:
-                pass
-            elif field in ["proposal_out"]:
-                print(f'\033[93m{dt.strftime("%H:%M")}\033[0m ', end="")
-            elif dt is not None:
-                print(f'\033[92m{dt.strftime("%H:%M")}\033[0m ', end="")
+    # print check-in/-out in tipee
+    print_time_checks(t)
+
     worktime = t.get_worktime(today).total_seconds() // 60
     missing = 8 * 60 - worktime
     if missing < 0:
@@ -253,17 +270,16 @@ if __name__ == "__main__":
         nb_time_in = 0
         first_time_out = 0
         for timecheck in t.get_timechecks(today):
-            time_in = parse_time(timecheck["time_in"])
-            time_out = parse_time(timecheck["time_out"], datetime.datetime.now())
+            time_in, time_out = get_safe_in_out(timecheck)
             nb_time_in += 1
 
             # we take the time_out as an int to calculate it
-            if timecheck["time_out"] is not None:
-                first_time_out = 10000 * datetime.datetime.strptime(timecheck["time_out"], "%Y-%m-%d %H:%M:%S").hour \
-                                 + 100 * datetime.datetime.strptime(timecheck["time_out"], "%Y-%m-%d %H:%M:%S").minute
+            if time_out is not None:
+                first_time_out = 10000 * datetime.datetime.strptime(time_out, "%Y-%m-%d %H:%M:%S").hour \
+                                 + 100 * datetime.datetime.strptime(time_out, "%Y-%m-%d %H:%M:%S").minute
         # we take the time_in as an int to calculate it
-        second_time_in = 10000 * datetime.datetime.strptime(timecheck["time_in"], "%Y-%m-%d %H:%M:%S").hour \
-                         + 100 * datetime.datetime.strptime(timecheck["time_in"], "%Y-%m-%d %H:%M:%S").minute
+        second_time_in = 10000 * datetime.datetime.strptime(time_in, "%Y-%m-%d %H:%M:%S").hour \
+                         + 100 * datetime.datetime.strptime(time_in, "%Y-%m-%d %H:%M:%S").minute
         # we remove 30mins if we did not make the break
         if nb_time_in == 1:
             missing += 30
@@ -283,7 +299,10 @@ if __name__ == "__main__":
         else:
             print(f"End of the day at: \033[1mNOW GO GO GO\033[0m 🏃💨")
 
+    # print time balance
     print_balances(t)
+
+    # print birthdays
     print_birthdays(t)
 
     # Weather
